@@ -7,22 +7,22 @@ load_dotenv()
 
 def generar_codigo_maestro(prompt, motor):
     """
-    Motor central AL CIELO. Prioridad: Lógica Python Local.
+    Asesoría técnica de alta precisión. 
+    Prioridad: Lógica Python Local de AL CIELO.
     """
     
-    # 1. LÓGICA DE PYTHON LOCAL (MOTOR RENDER)
-    # Este motor genera estructuras de código instantáneas sin usar APIs.
-    if motor == "Motor Render Local":
-        return generar_logica_python_local(prompt)
-
-    # 2. MOTORES EXTERNOS (EXTRAS)
+    # SYSTEM PROMPT: Configuración de Especialista en Carga y Software
     instruccion_maestra = (
-        "Eres el mejor Ingeniero de Software del Mundo. Entrega código puro, "
-        "sin errores y listo para producción. No digas 'IA'. Usa tablas para estructuras."
+        "Eres el mejor Ingeniero de Software. Especialista en normativas IATA, DOT y CBP. "
+        "Entrega soluciones técnicas directas y archivos listos para producción. "
+        "REGLAS: No digas IA. No des explicaciones largas. Usa tablas para datos."
     )
 
     try:
-        if motor == "OpenAI (Extra)":
+        if motor == "Motor Render Local":
+            return generar_logica_python_local(prompt)
+
+        elif motor == "OpenAI (Extra)":
             api_key = os.getenv("OPENAI_API_KEY")
             client = openai.OpenAI(api_key=api_key)
             response = client.chat.completions.create(
@@ -41,49 +41,35 @@ def generar_codigo_maestro(prompt, motor):
             return response.text
 
     except Exception as e:
-        return f"ERROR EN API EXTERNA: {str(e)}. Recomiendo usar el Motor Render Local."
+        return f"AL CIELO - Aviso: Error en API externa. Use el Motor Local. Detalle: {str(e)}"
 
 def generar_logica_python_local(prompt):
     """
-    Generador de archivos basado en lógica pura de Python.
-    Estructura sistemas de forma profesional y automática.
+    Generador de archivos basado en lógica pura de Python (Motor Render).
     """
-    prompt = prompt.lower()
+    p = prompt.lower()
     
-    # Plantilla Maestra de Python
-    backend_base = """
-import os
+    # Bloque de código base para evitar errores de f-string
+    base_code = """import os
 from flask import Flask, jsonify
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return jsonify({"status": "online", "msg": "Sistema Generado por AL CIELO"})
+    return jsonify({"status": "online", "msg": "Sistema AL CIELO Activo"})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
-"""
+    app.run(host='0.0.0.0', port=port)"""
 
-    # Lógica de decisión según lo que pidas
-    if "sql" in prompt or "base de datos" in prompt:
-        db_logic = "\n# Estructura SQL para 50 estados\nCREATE TABLE estados (id SERIAL PRIMARY KEY, nombre VARCHAR(50));"
-        return f"### ARQUITECTURA ESTRUCTURADA (PYTHON LOCAL)\n\n**Archivo: app.py**\n
-http://googleusercontent.com/immersive_entry_chip/0
-
----
-
-### ¿Por qué esta configuración es más efectiva?
-
-1.  **Independencia Total:** Si OpenAI falla por falta de pago o Gemini tiene error 404, el **Motor Render Local** (Python) siempre te dará una respuesta y una estructura de archivos válida.
-2.  **Velocidad:** Al ser código ejecutado directamente en tu servidor de Render, la respuesta es instantánea.
-3.  **Seguridad:** No envías datos a servidores externos si usas el motor local.
-4.  **Cero Errores de API:** Python no necesita "llaves" ni "créditos" para escribir código estructurado.
-
-### Instrucciones para el despliegue final:
-1.  Actualiza tu `brain.py` con este código en GitHub.
-2.  Asegúrate de que en el `interface.py`, el motor por defecto sea **"Motor Render Local"**.
-3.  En Render, haz el **"Manual Deploy"**.
-
-Ahora tienes un sistema híbrido: una fábrica de software que funciona con Python puro por defecto y usa las IAs más potentes solo cuando tú lo decidas. ¿Qué te parece esta estructura?
+    # Lógica de respuesta profesional
+    if "sql" in p or "base de datos" in p:
+        res = "### ARQUITECTURA ESTRUCTURADA (PYTHON LOCAL)\n\n"
+        res += "**Archivo: app.py**\n```python\n" + base_code + "\n```\n\n"
+        res += "**Archivo: schema.sql**\n```sql\nCREATE TABLE estados (id SERIAL PRIMARY KEY, nombre VARCHAR(50));\n```"
+        return res
+    
+    elif "avianca" in p or "carga" in p or "iata" in p:
+        res = "### ASESORÍA DE CARGA PROFESIONAL (AL CIELO)\n\n"
+        res += "**Archivo: logistica.py**\n
