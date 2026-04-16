@@ -1,79 +1,144 @@
 import os
 import openai
 import google.generativeai as genai
+import requests
 from dotenv import load_dotenv
 
-# Carga de variables de entorno (Configuradas en el Dashboard de Render)
 load_dotenv()
 
-def generar_codigo_maestro(prompt, motor):
-    """
-    Motor central de inteligencia de AL CIELO.
-    Genera arquitectura de software de alta precisión.
-    """
-    
-    # SYSTEM PROMPT: Configuración de Experto Absoluto
-    instruccion_maestra = (
-        "Actúa como el mejor Ingeniero de Software del Mundo. Tu objetivo es entregar "
-        "soluciones técnicas perfectas, sin errores de sintaxis y listas para producción. "
-        "REGLAS DE SALIDA:\n"
-        "1. Entrega EXCLUSIVAMENTE código funcional y archivos estructurados.\n"
-        "2. No saludes, no des introducciones ni conclusiones innecesarias.\n"
-        "3. Si el sistema es de logística, aplica estándares de cumplimiento (IATA, DOT, CBP).\n"
-        "4. No menciones 'IA' ni 'Inteligencia Artificial' bajo ningún concepto.\n"
-        "5. Usa tablas en Markdown si necesitas explicar estructuras de datos."
-    )
+# ===============================
+# SISTEMA MAESTRO DE INSTRUCCIÓN
+# ===============================
+INSTRUCCION_MAESTRA = (
+    "Actúa como el mejor Ingeniero de Software del Mundo. "
+    "Entrega SOLO código funcional listo para producción. "
+    "No explicaciones, no saludos, no texto innecesario."
+)
+
+# ===============================
+# OPENAI
+# ===============================
+def motor_openai(prompt):
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
 
     try:
-        # --- MOTOR 1: OPENAI (EXTRA) ---
-        if motor == "OpenAI (Extra)":
-            api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                return "ERROR: Falta OPENAI_API_KEY en las variables de entorno de Render."
-            
-            client = openai.OpenAI(api_key=api_key)
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": instruccion_maestra},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1  # Máxima precisión técnica
-            )
-            return response.choices[0].message.content
+        client = openai.OpenAI(api_key=api_key)
 
-        # --- MOTOR 2: GEMINI (EXTRA) ---
-        elif motor == "Gemini (Extra)":
-            api_key = os.getenv("GEMINI_API_KEY")
-            if not api_key:
-                return "ERROR: Falta GEMINI_API_KEY en las variables de entorno de Render."
-            
-            genai.configure(api_key=api_key)
-            # Usamos gemini-1.5-flash por su estabilidad y velocidad en APIs
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                generation_config={"temperature": 0.1}
-            )
-            
-            # Formato de envío optimizado
-            full_prompt = f"{instruccion_maestra}\n\nINSTRUCCIÓN DEL USUARIO: {prompt}"
-            response = model.generate_content(full_prompt)
-            return response.text
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": INSTRUCCION_MAESTRA},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1
+        )
+        return response.choices[0].message.content
 
-        # --- MOTOR 3: RENDER LOCAL ---
+    except Exception:
+        return None
+
+
+# ===============================
+# GEMINI
+# ===============================
+def motor_gemini(prompt):
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        genai.configure(api_key=api_key)
+
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config={"temperature": 0.1}
+        )
+
+        full_prompt = f"{INSTRUCCION_MAESTRA}\n\n{prompt}"
+        response = model.generate_content(full_prompt)
+
+        return response.text
+
+    except Exception:
+        return None
+
+
+# ===============================
+# OLLAMA LOCAL (GRATIS)
+# ===============================
+def motor_local(prompt):
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "llama3",
+                "prompt": f"{INSTRUCCION_MAESTRA}\n\n{prompt}",
+                "stream": False
+            },
+            timeout=60
+        )
+
+        if response.status_code == 200:
+            return response.json().get("response")
+
+        return None
+
+    except Exception:
+        return None
+
+
+# ===============================
+# MOTOR CENTRAL (HÍBRIDO PRO)
+# ===============================
+def generar_codigo_maestro(prompt, motor="auto"):
+    """
+    Motor híbrido inteligente:
+    - auto: intenta OpenAI → Gemini → Local
+    - OpenAI: fuerza OpenAI
+    - Gemini: fuerza Gemini
+    - Local: fuerza Ollama
+    """
+
+    try:
+
+        # =======================
+        # MODO AUTOMÁTICO (RECOMENDADO)
+        # =======================
+        if motor == "auto":
+
+            # 1. OpenAI
+            resultado = motor_openai(prompt)
+            if resultado:
+                return resultado
+
+            # 2. Gemini
+            resultado = motor_gemini(prompt)
+            if resultado:
+                return resultado
+
+            # 3. Local
+            resultado = motor_local(prompt)
+            if resultado:
+                return resultado
+
+            return "ERROR: Ningún motor disponible."
+
+        # =======================
+        # FORZADOS
+        # =======================
+        elif motor == "OpenAI":
+            return motor_openai(prompt) or "ERROR OpenAI"
+
+        elif motor == "Gemini":
+            return motor_gemini(prompt) or "ERROR Gemini"
+
+        elif motor == "Local":
+            return motor_local(prompt) or "ERROR Local (Ollama no activo)"
+
         else:
-            return (
-                "### AL CIELO: INFRAESTRUCTURA LOCAL\n"
-                "El motor local está activo. Para generar códigos complejos, "
-                "por favor selecciona OpenAI o Gemini en el panel lateral.\n\n"
-                "Estructura recomendada para tu próximo proyecto:\n"
-                "| Archivo | Función | Estado |\n"
-                "| :--- | :--- | :--- |\n"
-                "| `app.py` | Lógica Backend | Pendiente |\n"
-                "| `index.html` | Interfaz Usuario | Pendiente |\n"
-                "| `schema.sql` | Base de Datos | Pendiente |"
-            )
+            return "ERROR: Motor no válido."
 
     except Exception as e:
-        # Captura de errores de cuota, red o claves
-        return f"ERROR CRÍTICO EN EL MOTOR: {str(e)}"
+        return f"ERROR CRÍTICO: {str(e)}"
