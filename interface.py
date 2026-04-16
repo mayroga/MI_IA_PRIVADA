@@ -16,3 +16,18 @@ if st.button("GENERAR CÓDIGO MAESTRO"):
         # Lógica para separar el código en archivos (puedes pedirle JSON a la IA)
         st.code(raw_code, language='python')
         st.success("Código generado. Listo para despliegue.")
+import zipfile
+import io
+
+# Función para crear el ZIP y descargarlo
+def download_project(files_dict):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "x") as csv_zip:
+        for name, data in files_dict.items():
+            csv_zip.writestr(name, data)
+    return buf.getvalue()
+
+# En la interfaz, después de generar el código:
+if st.button("DESCARGAR ARCHIVOS LISTOS"):
+    zip_data = download_project(archivos_generados)
+    st.download_button(label="💾 Bajar Sistema Completo", data=zip_data, file_name="proyecto.zip")
