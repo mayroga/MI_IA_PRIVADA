@@ -3,33 +3,33 @@ import openai
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# Carga de variables de entorno (Keys de Render)
+# Carga de variables de entorno (Configuradas en el Dashboard de Render)
 load_dotenv()
 
 def generar_codigo_maestro(prompt, motor):
     """
     Motor central de inteligencia de AL CIELO.
-    Genera código de alta precisión basado en el proveedor seleccionado.
+    Genera arquitectura de software de alta precisión.
     """
     
-    # SYSTEM PROMPT: Define el comportamiento de experto absoluto
+    # SYSTEM PROMPT: Configuración de Experto Absoluto
     instruccion_maestra = (
-        "Eres el mejor Ingeniero de Software del Mundo. Tu especialidad es crear apps y sistemas "
-        "completos, sin errores, listos para copiar y pegar. "
-        "REGLAS ESTRICTAS:\n"
-        "1. No saludes ni des explicaciones largas.\n"
-        "2. Si el usuario pide una app, entrega la estructura de archivos completa.\n"
-        "3. Usa comentarios técnicos solo donde sea necesario.\n"
-        "4. Si detectas lógica de logística o carga, aplica normativas IATA, DOT y CBP.\n"
-        "5. No uses la palabra 'IA' ni 'Inteligencia Artificial' en tus respuestas."
+        "Actúa como el mejor Ingeniero de Software del Mundo. Tu objetivo es entregar "
+        "soluciones técnicas perfectas, sin errores de sintaxis y listas para producción. "
+        "REGLAS DE SALIDA:\n"
+        "1. Entrega EXCLUSIVAMENTE código funcional y archivos estructurados.\n"
+        "2. No saludes, no des introducciones ni conclusiones innecesarias.\n"
+        "3. Si el sistema es de logística, aplica estándares de cumplimiento (IATA, DOT, CBP).\n"
+        "4. No menciones 'IA' ni 'Inteligencia Artificial' bajo ningún concepto.\n"
+        "5. Usa tablas en Markdown si necesitas explicar estructuras de datos."
     )
 
     try:
-        # --- OPCIÓN 1: OPENAI (Extra) ---
+        # --- MOTOR 1: OPENAI (EXTRA) ---
         if motor == "OpenAI (Extra)":
             api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
-                return "ERROR: No se encontró la OPENAI_API_KEY en las variables de entorno de Render."
+                return "ERROR: Falta OPENAI_API_KEY en las variables de entorno de Render."
             
             client = openai.OpenAI(api_key=api_key)
             response = client.chat.completions.create(
@@ -38,44 +38,42 @@ def generar_codigo_maestro(prompt, motor):
                     {"role": "system", "content": instruccion_maestra},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.2 # Precisión técnica alta
+                temperature=0.1  # Máxima precisión técnica
             )
             return response.choices[0].message.content
 
-        # --- OPCIÓN 2: GEMINI (Extra) ---
+        # --- MOTOR 2: GEMINI (EXTRA) ---
         elif motor == "Gemini (Extra)":
             api_key = os.getenv("GEMINI_API_KEY")
             if not api_key:
-                return "ERROR: No se encontró la GEMINI_API_KEY en las variables de entorno de Render."
+                return "ERROR: Falta GEMINI_API_KEY en las variables de entorno de Render."
             
             genai.configure(api_key=api_key)
+            # Usamos gemini-1.5-flash por su estabilidad y velocidad en APIs
             model = genai.GenerativeModel(
-                model_name="gemini-1.5-pro",
-                system_instruction=instruccion_maestra
+                model_name="gemini-1.5-flash",
+                generation_config={"temperature": 0.1}
             )
-            response = model.generate_content(prompt)
+            
+            # Formato de envío optimizado
+            full_prompt = f"{instruccion_maestra}\n\nINSTRUCCIÓN DEL USUARIO: {prompt}"
+            response = model.generate_content(full_prompt)
             return response.text
 
-        # --- OPCIÓN 3: MOTOR RENDER LOCAL ---
+        # --- MOTOR 3: RENDER LOCAL ---
         else:
-            # Lógica pre-configurada para respuestas instantáneas de arquitectura
             return (
-                "### SISTEMA DE ARQUITECTURA LOCAL (AL CIELO)\n"
-                "Para generar código avanzado, selecciona el motor OpenAI o Gemini en la barra lateral.\n\n"
-                "Estructura Base Recomendada:\n"
-                "1. /backend: app.py (Flask/FastAPI)\n"
-                "2. /frontend: index.html + script.js\n"
-                "3. /database: schema.sql\n"
-                "4. /deploy: render.yaml"
+                "### AL CIELO: INFRAESTRUCTURA LOCAL\n"
+                "El motor local está activo. Para generar códigos complejos, "
+                "por favor selecciona OpenAI o Gemini en el panel lateral.\n\n"
+                "Estructura recomendada para tu próximo proyecto:\n"
+                "| Archivo | Función | Estado |\n"
+                "| :--- | :--- | :--- |\n"
+                "| `app.py` | Lógica Backend | Pendiente |\n"
+                "| `index.html` | Interfaz Usuario | Pendiente |\n"
+                "| `schema.sql` | Base de Datos | Pendiente |"
             )
 
     except Exception as e:
+        # Captura de errores de cuota, red o claves
         return f"ERROR CRÍTICO EN EL MOTOR: {str(e)}"
-
-# --- FUNCIONES DE SOPORTE TÉCNICO ---
-def formatear_para_tabla(texto):
-    """
-    Convierte respuestas en formato de tabla para la interfaz.
-    """
-    # Esta función puede ser expandida para parsear JSON a tablas de Streamlit
-    pass
