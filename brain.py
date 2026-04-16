@@ -1,78 +1,136 @@
-from flask import Flask, request, jsonify
-from brain import generar_codigo_maestro
+import os
+import openai
+import google.generativeai as genai
+import requests
+from dotenv import load_dotenv
 
-app = Flask(__name__)
+load_dotenv()
 
 # ===============================
-# FORZAR OLLAMA ACTIVO (LOCAL)
+# CONFIG
+# ===============================
+OLLAMA_URL = "http://localhost:11434/api/generate"
+TIMEOUT = 60
+
+INSTRUCCION_MAESTRA = (
+    "Actúa como el mejor Ingeniero de Software del Mundo. "
+    "Entrega SOLO código funcional listo para producción. "
+    "No explicaciones, no saludos, no texto innecesario."
+)
+
+# ===============================
+# OLLAMA ACTIVO (FORZADO SIMPLE)
 # ===============================
 def ollama_activo():
-    try:
-        return True
-    except:
-        return False
+    return True
 
 # ===============================
-# RUTA PRINCIPAL
+# OPENAI
 # ===============================
-@app.route("/")
-def home():
-    return "AL CIELO ENGINE ACTIVO"
-
-# ===============================
-# API GENERADOR DE CÓDIGO
-# ===============================
-@app.route("/generar", methods=["POST"])
-def generar():
+def motor_openai(prompt):
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
 
     try:
-        data = request.get_json()
+        client = openai.OpenAI(api_key=api_key)
 
-        prompt = data.get("prompt", "")
-        motor = data.get("motor", "auto")  # auto por defecto
-
-        if not prompt:
-            return jsonify({"error": "Prompt vacío"}), 400
-
-        resultado = generar_codigo_maestro(prompt, motor)
-
-        return jsonify({
-            "status": "ok",
-            "motor": motor,
-            "resultado": resultado
-        })
-
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "mensaje": str(e)
-        }), 500
-
-
-# ===============================
-# TEST DIRECTO (IMPORTANTE)
-# ===============================
-@app.route("/test-local")
-def test_local():
-    try:
-        resultado = generar_codigo_maestro(
-            "write a simple python hello world",
-            "Local"
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": INSTRUCCION_MAESTRA},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1
         )
 
-        return jsonify({
-            "status": "ok",
-            "resultado": resultado
-        })
+        return response.choices[0].message.content
+
+    except Exception:
+        return None
+
+# ===============================
+# GEMINI
+# ===============================
+def motor_gemini(prompt):
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        genai.configure(api_key=api_key)
+
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config={"temperature": 0.1}
+        )
+
+        full_prompt = f"{INSTRUCCION_MAESTRA}\n\n{prompt}"
+        response = model.generate_content(full_prompt)
+
+        return response.text
+
+    except Exception:
+        return None
+
+# ===============================
+# OLLAMA LOCAL
+# ===============================
+def motor_local(prompt):
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": "llama3",
+                "prompt": f"{INSTRUCCION_MAESTRA}\n\n{prompt}",
+                "stream": False
+            },
+            timeout=TIMEOUT
+        )
+
+        if response.status_code == 200:
+            return response.json().get("response")
+
+        return None
+
+    except Exception:
+        return None
+
+# ===============================
+# MOTOR CENTRAL
+# ===============================
+def generar_codigo_maestro(prompt, motor="auto"):
+
+    try:
+
+        # AUTO: local primero
+        if motor == "auto":
+
+            resultado = motor_local(prompt)
+            if resultado:
+                return resultado
+
+            resultado = motor_openai(prompt)
+            if resultado:
+                return resultado
+
+            resultado = motor_gemini(prompt)
+            if resultado:
+                return resultado
+
+            return "ERROR: Ningún motor disponible"
+
+        elif motor == "Local":
+            return motor_local(prompt) or "ERROR Local"
+
+        elif motor == "OpenAI":
+            return motor_openai(prompt) or "ERROR OpenAI"
+
+        elif motor == "Gemini":
+            return motor_gemini(prompt) or "ERROR Gemini"
+
+        else:
+            return "ERROR: Motor inválido"
 
     except Exception as e:
-        return jsonify({
-            "error": str(e)
-        })
-
-
-# ===============================
-# RUN SERVER
-# ===============================
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000, debug=True)
+        return f"ERROR CRÍTICO: {str(e)}"
