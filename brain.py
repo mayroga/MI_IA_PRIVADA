@@ -7,13 +7,29 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ===============================
-# SISTEMA MAESTRO DE INSTRUCCIÓN
+# CONFIGURACIÓN
+# ===============================
+OLLAMA_URL = "http://localhost:11434/api/generate"
+TIMEOUT = 60
+
+# ===============================
+# SISTEMA MAESTRO
 # ===============================
 INSTRUCCION_MAESTRA = (
     "Actúa como el mejor Ingeniero de Software del Mundo. "
     "Entrega SOLO código funcional listo para producción. "
     "No explicaciones, no saludos, no texto innecesario."
 )
+
+# ===============================
+# VERIFICAR OLLAMA ACTIVO
+# ===============================
+def ollama_activo():
+    try:
+        r = requests.get("http://localhost:11434", timeout=2)
+        return r.status_code == 200
+    except:
+        return False
 
 # ===============================
 # OPENAI
@@ -34,11 +50,11 @@ def motor_openai(prompt):
             ],
             temperature=0.1
         )
+
         return response.choices[0].message.content
 
     except Exception:
         return None
-
 
 # ===============================
 # GEMINI
@@ -64,62 +80,64 @@ def motor_gemini(prompt):
     except Exception:
         return None
 
-
 # ===============================
 # OLLAMA LOCAL (GRATIS)
 # ===============================
 def motor_local(prompt):
+    if not ollama_activo():
+        return None
+
     try:
         response = requests.post(
-            "http://localhost:11434/api/generate",
+            OLLAMA_URL,
             json={
                 "model": "llama3",
                 "prompt": f"{INSTRUCCION_MAESTRA}\n\n{prompt}",
                 "stream": False
             },
-            timeout=60
+            timeout=TIMEOUT
         )
 
         if response.status_code == 200:
-            return response.json().get("response")
+            data = response.json()
+            return data.get("response")
 
         return None
 
     except Exception:
         return None
 
-
 # ===============================
 # MOTOR CENTRAL (HÍBRIDO PRO)
 # ===============================
 def generar_codigo_maestro(prompt, motor="auto"):
     """
-    Motor híbrido inteligente:
-    - auto: intenta OpenAI → Gemini → Local
-    - OpenAI: fuerza OpenAI
-    - Gemini: fuerza Gemini
-    - Local: fuerza Ollama
+    MODOS:
+    - auto (RECOMENDADO): Local → OpenAI → Gemini
+    - Local
+    - OpenAI
+    - Gemini
     """
 
     try:
 
         # =======================
-        # MODO AUTOMÁTICO (RECOMENDADO)
+        # AUTO INTELIGENTE (GRATIS PRIMERO)
         # =======================
         if motor == "auto":
 
-            # 1. OpenAI
+            # 1. LOCAL GRATIS
+            resultado = motor_local(prompt)
+            if resultado:
+                return resultado
+
+            # 2. OPENAI
             resultado = motor_openai(prompt)
             if resultado:
                 return resultado
 
-            # 2. Gemini
+            # 3. GEMINI
             resultado = motor_gemini(prompt)
-            if resultado:
-                return resultado
-
-            # 3. Local
-            resultado = motor_local(prompt)
             if resultado:
                 return resultado
 
@@ -128,17 +146,17 @@ def generar_codigo_maestro(prompt, motor="auto"):
         # =======================
         # FORZADOS
         # =======================
+        elif motor == "Local":
+            return motor_local(prompt) or "ERROR: Ollama no activo"
+
         elif motor == "OpenAI":
             return motor_openai(prompt) or "ERROR OpenAI"
 
         elif motor == "Gemini":
             return motor_gemini(prompt) or "ERROR Gemini"
 
-        elif motor == "Local":
-            return motor_local(prompt) or "ERROR Local (Ollama no activo)"
-
         else:
-            return "ERROR: Motor no válido."
+            return "ERROR: Motor no válido"
 
     except Exception as e:
         return f"ERROR CRÍTICO: {str(e)}"
